@@ -1,0 +1,15 @@
+name: Trigger Windows Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: 'Architecture à builder'
+        required: true
+        default: 'x64'
+
+jobs:
+  call_build:
+    uses: ./.github/workflows/build_windows.yaml
+    with:
+      arch: ${{ github.event.inputs.arch }}
