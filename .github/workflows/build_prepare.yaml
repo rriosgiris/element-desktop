@@ -81,9 +81,25 @@ jobs:
                   PR_NUMBER: ${{ github.event.pull_request.number }}
                   CONFIG_DIR: ${{ inputs.config }}
 
-            - name: Fetch Element Web (${{ inputs.version }})
+            # MODIFIÉ : Utilise votre fork d'Element Web au lieu de yarn run fetch
+            - name: Fetch Element Web (custom fork)
               if: steps.branch-matching.outcome == 'failure' || steps.branch-matching.outcome == 'skipped'
-              run: yarn run fetch --noverify -d ${{ inputs.config }} ${{ inputs.version }}
+              run: |
+                  # Clone votre fork Element Web
+                  git clone --depth 1 https://github.com/rriosgiris/element-web.git -b develop element-web
+                  
+                  # Copie la config
+                  cp "$CONFIG_DIR/config.json" element-web/
+                  
+                  # Install et build Element Web
+                  yarn --cwd element-web install --frozen-lockfile
+                  yarn --cwd element-web run build
+                  
+                  # Déplace le webapp buildé et le package en asar
+                  mv element-web/webapp .
+                  yarn asar-webapp
+              env:
+                  CONFIG_DIR: ${{ inputs.config }}
 
             - name: Copy variant config
               run: cp "$CONFIG_DIR/build.json" variant.json
