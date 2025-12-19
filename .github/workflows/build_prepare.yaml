@@ -134,9 +134,10 @@ jobs:
                   GITHUB_TOKEN: ${{ github.token }}
               with:
                   tag: v${{ steps.package.outputs.version }}
+                  doNotFailIfNotFound: true
 
             - name: "[Release] Write changelog"
-              if: ${{ !inputs.nightly && inputs.version != 'develop' }}
+              if: ${{ !inputs.nightly && inputs.version != 'develop' && steps.release.outputs.id != '' }}
               run: |
                   TIME=$(date -d "$PUBLISHED_AT" -R)
                   echo "element-desktop ($VERSION) default; urgency=medium" >> changelog.Debian
