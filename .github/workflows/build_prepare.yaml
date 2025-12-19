@@ -84,7 +84,7 @@ jobs:
             - name: Fetch Element Web (custom fork)
               if: steps.branch-matching.outcome == 'failure' || steps.branch-matching.outcome == 'skipped'
               run: |
-                git clone --depth 1 https://github.com/rriosgiris/element-web.git -b stable-1.12.6 element-web
+                git clone --depth 1 https://github.com/rriosgiris/element-web.git -b develop element-web
                 
                 cp "$CONFIG_DIR/config.json" element-web/
                 
