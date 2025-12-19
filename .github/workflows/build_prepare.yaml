@@ -81,9 +81,20 @@ jobs:
                   PR_NUMBER: ${{ github.event.pull_request.number }}
                   CONFIG_DIR: ${{ inputs.config }}
 
-            - name: Fetch Element Web (${{ inputs.version }})
+            - name: Fetch Element Web (custom fork)
               if: steps.branch-matching.outcome == 'failure' || steps.branch-matching.outcome == 'skipped'
-              run: yarn run fetch --noverify -d ${{ inputs.config }} ${{ inputs.version }}
+              run: |
+                git clone --depth 1 https://github.com/rriosgiris/element-web.git -b stable-1.12.6 element-web
+                
+                cp "$CONFIG_DIR/config.json" element-web/
+                
+                yarn --cwd element-web install --frozen-lockfile
+                yarn --cwd element-web run build
+                
+                mv element-web/webapp .
+                yarn asar-webapp
+              env:
+                CONFIG_DIR: ${{ inputs.config }}
 
             - name: Copy variant config
               run: cp "$CONFIG_DIR/build.json" variant.json
@@ -126,29 +137,29 @@ jobs:
               run: |
                   echo "version=$(cat package.json | jq -r .version)" >> $GITHUB_OUTPUT
 
-            - name: "[Release] Fetch release"
-              id: release
-              if: ${{ !inputs.nightly && inputs.version != 'develop' }}
-              uses: cardinalby/git-get-release-action@cedef2faf69cb7c55b285bad07688d04430b7ada # v1
-              env:
-                  GITHUB_TOKEN: ${{ github.token }}
-              with:
-                  tag: v${{ steps.package.outputs.version }}
-                  doNotFailIfNotFound: true
+            #- name: "[Release] Fetch release"
+            #  id: release
+            #  if: ${{ !inputs.nightly && inputs.version != 'develop' }}
+            #  uses: cardinalby/git-get-release-action@cedef2faf69cb7c55b285bad07688d04430b7ada # v1
+            #  env:
+            #      GITHUB_TOKEN: ${{ github.token }}
+            #  with:
+            #      tag: v${{ steps.package.outputs.version }}
+            #      doNotFailIfNotFound: true
 
-            - name: "[Release] Write changelog"
-              if: ${{ !inputs.nightly && inputs.version != 'develop' && steps.release.outputs.id != '' }}
-              run: |
-                  TIME=$(date -d "$PUBLISHED_AT" -R)
-                  echo "element-desktop ($VERSION) default; urgency=medium" >> changelog.Debian
-                  echo "$BODY" | sed 's/^##/\n  */g;s/^\*/  */g' | perl -pe 's/\[.+?]\((.+?)\)/\1/g' >> changelog.Debian
-                  echo "" >> changelog.Debian
-                  echo " -- $ACTOR <support@element.io>  $TIME" >> changelog.Debian
-              env:
-                  ACTOR: ${{ github.actor }}
-                  VERSION: v${{ steps.package.outputs.version }}
-                  BODY: ${{ steps.release.outputs.body }}
-                  PUBLISHED_AT: ${{ steps.release.outputs.published_at }}
+            #- name: "[Release] Write changelog"
+            #  if: ${{ !inputs.nightly && inputs.version != 'develop' && steps.release.outputs.id != '' }}
+            #  run: |
+            #      TIME=$(date -d "$PUBLISHED_AT" -R)
+            #      echo "element-desktop ($VERSION) default; urgency=medium" >> changelog.Debian
+            #      echo "$BODY" | sed 's/^##/\n  */g;s/^\*/  */g' | perl -pe 's/\[.+?]\((.+?)\)/\1/g' >> changelog.Debian
+            #      echo "" >> changelog.Debian
+            #      echo " -- $ACTOR <support@element.io>  $TIME" >> changelog.Debian
+            #  env:
+            #      ACTOR: ${{ github.actor }}
+            #      VERSION: v${{ steps.package.outputs.version }}
+            #      BODY: ${{ steps.release.outputs.body }}
+            #      PUBLISHED_AT: ${{ steps.release.outputs.published_at }}
 
             - name: "[Nightly] Write summary"
               if: inputs.nightly
