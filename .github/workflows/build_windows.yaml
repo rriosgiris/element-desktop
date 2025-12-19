@@ -110,7 +110,7 @@ jobs:
 
             - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
               with:
-                  repository: element-hq/element-desktop
+                  repository: ${{ github.repository }}
                   ref: ${{ inputs.ref }}
 
             - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
@@ -267,19 +267,19 @@ jobs:
 
             - name: Assert executable is present
               run: |
-                  Test-Path './dist/win-*unpacked/Element*.exe'
+                  Test-Path './dist/win-*unpacked/Skiris*.exe'
 
             - name: Assert all Squirrel files are present
               if: contains(inputs.targets, 'squirrel')
               run: |
-                  Test-Path './dist/squirrel-windows*/Element Setup*.exe'
-                  Test-Path './dist/squirrel-windows*/element-desktop-*-full.nupkg'
+                  Test-Path './dist/squirrel-windows*/Skiris Setup*.exe'
+                  Test-Path './dist/squirrel-windows*/skiris-desktop-*-full.nupkg'
                   Test-Path './dist/squirrel-windows*/RELEASES'
 
             - name: Assert MSI is present
               if: contains(inputs.targets, 'msi')
               run: |
-                  Test-Path './dist/Element*.msi'
+                  Test-Path './dist/Skiris*.msi'
 
     test:
         name: Test Windows ${{ inputs.arch }}
@@ -290,6 +290,6 @@ jobs:
             project: win-${{ inputs.arch }}
             artifact: ${{ inputs.artifact-prefix }}win-${{ inputs.arch }}
             runs-on: ${{ inputs.test-runs-on || (inputs.arch == 'arm64' && 'windows-11-arm' || 'windows-2022') }}
-            executable: ./dist/win*-unpacked/Element*.exe
+            executable: ./dist/win*-unpacked/Skiris*.exe
             blob_report: ${{ inputs.blob_report }}
             args: ${{ inputs.test-args }}

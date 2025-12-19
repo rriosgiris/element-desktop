@@ -1,0 +1,22 @@
+name: Skiris Build
+on:
+  workflow_dispatch: # Permet le lancement manuel depuis GitHub Actions
+
+jobs:
+  prepare:
+    uses: ./.github/workflows/build_prepare.yaml
+    with:
+      config: element.io/release  # Utilise votre config Skiris
+      nightly: false              # Désactive le mode Nightly
+      version: ""                 # Utilise la version du package.json
+    secrets: inherit
+
+  windows:
+    needs: prepare
+    uses: ./.github/workflows/build_windows.yaml
+    with:
+      arch: x64
+      ref: stable-1.12.6          # Force l'utilisation de votre branche
+      sign: false                 # Mettre à true si vous avez des certificats
+      targets: "squirrel msi"
+    secrets: inherit
