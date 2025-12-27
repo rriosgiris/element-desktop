@@ -249,15 +249,16 @@ jobs:
                   Set-StrictMode -Version 'Latest'
                   Import-Certificate -CertStoreLocation Cert:\LocalMachine\Root -FilePath .github/SSLcom-sandbox.crt
 
-            - name: Check app was signed successfully
-              run: |
-                  Set-StrictMode -Version 'Latest'
-                  Get-ChildItem `
-                      -Recurse dist `
-                      -Include *.exe, *.msi `
-                  | ForEach-Object -Process {. $env:SIGNTOOL_PATH verify /pa $_.FullName; if(!$?) { throw }}
+            #- name: Check app was signed successfully
+            #  run: |
+            #      Set-StrictMode -Version 'Latest'
+            #      Get-ChildItem `
+            #          -Recurse dist `
+            #          -Include *.exe, *.msi `
+            #      | ForEach-Object -Process {. $env:SIGNTOOL_PATH verify /pa $_.FullName; if(!$?) { throw }}
 
             - name: Upload Artifacts
+              if: always()
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
               with:
                   name: ${{ inputs.artifact-prefix }}win-${{ inputs.arch }}

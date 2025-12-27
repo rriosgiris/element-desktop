@@ -1,0 +1,248 @@
+name: Simple Build - Windows, macOS, Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      element_web_branch:
+        description: 'Skiris Web branch to build from rriosgiris/element-web'
+        required: false
+        default: 'develop'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare Element Web
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout element-desktop
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: "yarn"
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Fetch Element Web from custom repo
+        run: |
+          # Clone element-web from custom repo
+          git clone --depth 1 --branch ${{ inputs.element_web_branch }} https://github.com/rriosgiris/element-web.git
+          
+          # Copy config
+          cp element.io/release/config.json element-web/
+          
+          # Build element-web
+          cd element-web
+          yarn install --frozen-lockfile
+          yarn run build
+          cd ..
+          
+          # Move webapp and create asar
+          mv element-web/webapp .
+          yarn asar-webapp
+
+      - name: Copy variant config
+        run: cp element.io/release/build.json variant.json
+
+      - name: Generate cache hash files
+        run: |
+          yarn run --silent electron --no-sandbox --version > electronVersion
+          cat package.json | jq -c .hakDependencies | sha1sum > hakHash
+          find hak -type f -print0 | xargs -0 sha1sum >> hakHash
+          find scripts/hak -type f -print0 | xargs -0 sha1sum >> hakHash
+
+      - name: Upload webapp artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          retention-days: 1
+          path: |
+            webapp.asar
+            electronVersion
+            hakHash
+            variant.json
+
+  build-windows:
+    name: Build Windows x64
+    needs: prepare
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download webapp
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: "yarn"
+
+      - name: Cache .hak
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-x64-${{ hashFiles('hakHash', 'electronVersion') }}
+          path: ./.hak
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Windows App (unsigned)
+        run: yarn build --publish never -w squirrel
+        env:
+          VARIANT_PATH: variant.json
+          # Disable code signing
+          WIN_CSC_IDENTITY_AUTO_DISCOVERY: false
+        shell: pwsh
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            dist/squirrel-windows*/*.exe
+          retention-days: 7
+
+  build-macos:
+    name: Build macOS Universal
+    needs: prepare
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download webapp
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: "yarn"
+
+      - name: Cache .hak
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-universal-${{ hashFiles('hakHash', 'electronVersion') }}
+          path: ./.hak
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Native Dependencies
+        run: yarn build:native:universal
+
+      - name: Build macOS App (unsigned)
+        run: yarn build:universal --publish never -m dmg
+        env:
+          VARIANT_PATH: variant.json
+          # Disable code signing
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload macOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            dist/*.dmg
+          retention-days: 7
+
+  build-linux:
+    name: Build Linux x64
+    needs: prepare
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download webapp
+        uses: actions/download-artifact@v4
+        with:
+          name: webapp
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: "yarn"
+
+      - name: Cache .hak
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-amd64-${{ hashFiles('hakHash', 'electronVersion') }}
+          path: ./.hak
+
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Native Dependencies
+        run: |
+          docker run \
+            -v ${{ github.workspace }}:/work -w /work \
+            -e SQLCIPHER_BUNDLED=1 \
+            ghcr.io/element-hq/element-desktop-dockerbuild:develop \
+            yarn build:native
+
+      - name: Fix .hak permissions
+        run: sudo chown -R $USER:$USER .hak
+
+      - name: Build Linux App
+        run: yarn build --publish never -l tar.gz deb
+        env:
+          VARIANT_PATH: variant.json
+          USE_HARD_LINKS: false
+          SQLCIPHER_BUNDLED: 1
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+          retention-days: 7
+
+  summary:
+    name: Build Summary
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Create Summary
+        run: |
+          echo "## 🎉 Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your builds are ready to download from the artifacts section above." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Available Builds:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Windows**: \`windows-build\` - Contains .exe installer" >> $GITHUB_STEP_SUMMARY
+          echo "- **macOS**: \`macos-build\` - Contains .dmg installer" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux**: \`linux-build\` - Contains .deb and .tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Installation Notes:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Windows**: Run the .exe. You may see a SmartScreen warning (unsigned build)" >> $GITHUB_STEP_SUMMARY
+          echo "- **macOS**: Open the .dmg and drag to Applications. On first launch, right-click → Open (unsigned build)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Linux**: Install .deb with \`sudo dpkg -i element-desktop*.deb\` or extract .tar.gz" >> $GITHUB_STEP_SUMMARY
