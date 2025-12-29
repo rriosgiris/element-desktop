@@ -25,6 +25,7 @@
         "servers": ["matrix.org", "gitter.im"]
     },
     "show_labs_settings": false,
+    "default_theme": "custom-Lavender",
     "enable_presence_by_hs_url": {
         "https://matrix.org": false,
         "https://matrix-client.matrix.org": false
@@ -46,7 +47,35 @@
     "privacy_policy_url": "https://element.io/cookie-policy",
     "map_style_url": "https://api.maptiler.com/maps/streets/style.json?key=fU3vlMsMn4Jb6dnEIFsx",
     "setting_defaults": {
-        "RustCrypto.staged_rollout_percent": 60
+        "breadcrumbs": true,
+        "theme": "custom-Lavender",
+        "use_system_theme": false,
+        "RustCrypto.staged_rollout_percent": 60,
+        "custom_themes": [
+            {
+                "name": "Lavender",
+                "is_dark": false,
+                "colors": {
+                    "accent-color": "#ab8cdfff",
+                    "primary-color": "#a079e0ff",
+                    "warning-color": "#ff6b6b",
+                    "sidebar-color": "#f5f2f8",
+                    "roomlist-background-color": "#fdfaff",
+                    "roomlist-text-color": "#3a2c4d",
+                    "roomlist-text-secondary-color": "#7b6c89",
+                    "roomlist-highlights-color": "#ffffff",
+                    "roomlist-separator-color": "#e5e0eb",
+                    "timeline-background-color": "#ffffff",
+                    "timeline-text-color": "#3a2c4d",
+                    "timeline-text-secondary-color": "#7b6c89",
+                    "timeline-highlights-color": "#f7f3fb"
+                },
+                "compound": {
+                    "--cpd-color-icon-accent-tertiary": "var(--cpd-color-purple-500)",
+                    "--cpd-color-text-action-accent": "var(--cpd-color-purple-600)"
+                }
+            }
+        ]
     },
     "features": {
         "feature_video_rooms": true,

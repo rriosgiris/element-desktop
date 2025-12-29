@@ -261,6 +261,7 @@ async function setupGlobals(): Promise<void> {
 
     // Figure out the tray icon path & brand name
     const iconFile = `icon.${process.platform === "win32" ? "ico" : "png"}`;
+
     global.trayConfig = {
         icon_path: path.join(path.dirname(asarPath), "build", iconFile),
         brand: global.vectorConfig.brand || "Element",
@@ -467,6 +468,8 @@ app.on("ready", async () => {
             webgl: true,
         },
     });
+
+    console.log(global.trayConfig.icon_path)
 
     global.mainWindow.setContentProtection(store.get("enableContentProtection"));
 
