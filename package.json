@@ -3,7 +3,7 @@
     "productName": "Skiris",
     "main": "lib/electron-main.js",
     "exports": "./lib/electron-main.js",
-    "version": "1.12.6",
+    "version": "1.0.0",
     "description": "Client for Matrix messaging",
     "author": {
         "name": "Skiris",

@@ -1,5 +1,5 @@
 {
-    "update_base_url": "https://packages.element.io/desktop/update/",
+    "update_base_url": "https://gist.githubusercontent.com/rriosgiris/d3df448ca5dd29be6b4a5e71f224d4ab/raw/skiris-version.json",
     "default_server_name": "skiris-server.airistech.ai",
     "default_server_config": {
         "m.homeserver": {
@@ -81,6 +81,9 @@
         "feature_video_rooms": true,
         "feature_group_calls": true,
         "feature_element_call_video_rooms": true
+    },
+    "jitsi": {
+        "preferred_domain": "meet.airistech.ai"
     },
     "element_call": {
         "url": "https://call.element.io"

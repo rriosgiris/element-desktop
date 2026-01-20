@@ -423,12 +423,14 @@ app.on("ready", async () => {
     });
 
     // Minimist parses `--no-`-prefixed arguments as booleans with value `false` rather than verbatim.
+    console.log("--- DEBUG UPDATER START ---");
+    
     if (argv["update"] === false) {
         console.log("Auto update disabled via command line flag");
-    } else if (global.vectorConfig["update_base_url"]) {
-        void updater.start(global.vectorConfig["update_base_url"]);
     } else {
-        console.log("No update_base_url is defined: auto update is disabled");
+        // On force l'appel sans vérifier global.vectorConfig
+        console.log("Appel de updater.start en cours (Force Start Skiris)...");
+        void updater.start("https://skiris.internal"); // On passe une URL bidon pour satisfaire la signature de la fonction
     }
 
     // Set up i18n before loading storage as we need translations for dialogs
